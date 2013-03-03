@@ -300,7 +300,7 @@ int present(int *temppos){
 }
 void init(struct node *root){	
 	memset(Dstates,'\0',sizeof(Dstates));
-	
+	int j=0;
 	for(j=1; j<CHAR_COUNT; j++)
 		Dtrans[0][j] = 'a'+j-1;
 	for(j=1; j<MAX_STATES; j++)
@@ -316,6 +316,7 @@ void init(struct node *root){
 	
 }
 void construct_dfa(char * postfix , struct node * root){
+	int finalstate;
 	int j=0;
 	char name ='B';
 	int um =unmarked();
@@ -363,6 +364,8 @@ void construct_dfa(char * postfix , struct node * root){
 		}
 		um =unmarked();
 	}
+	finalstate = name-'A';
+	printf("\nfinal state = %d\n",finalstate);
 }
 void print_dfatrans(){
 	int i,j;
