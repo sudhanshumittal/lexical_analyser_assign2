@@ -29,24 +29,30 @@ void print_dfatrans(int z){
 	printf("final State :%d\n", tcArray[z].finalstate);
 	
 }
-void tokenizer(char* s){
+int yylen;
+char yytext[20];
+char * lex(char* s){
 	int first=0, last =0;
-	char token[max_tokens][10];
+	memset(yytext, '\0',sizeof(yytext));
+	yylen =0;
+	//char token[max_tokens][10];
 	int i;
-	for(i=0; i<max_tokens;i++)
+	/*
+	  for(i=0; i<max_tokens;i++)
 		memset(token[i], '\0',sizeof(token[i]));
-	int tokencount = 0;
+	*/
+	//int tokencount = 0;
 	int len = strlen(s);
 	int last_token_found_start =-1;
 	int last_token_found_end =-1;
 	int last_token_found_class=-1;
-	while(first < len){
+	while(last < len){
 		int j;
 		for(j=0;j<tcCount; j++){
 			//printf("first = %d\tlast = %d\tcheck = %d\n",first, last, check(s, first,last,j));
 			if(check(s, first,last,j )){
 			
-			 last_token_found_start = first;
+			 //last_token_found_start = first;
 			 last_token_found_end = last;
 			 last_token_found_class = j;
 			 break;
@@ -54,19 +60,21 @@ void tokenizer(char* s){
 		}
 		last++;
 		if(last == len) {
-			if(last_token_found_start ==-1) printerror();
-			first = last_token_found_end+1;
-			last = first;
-			strncpy(token[tokencount],s+last_token_found_start, last_token_found_end-last_token_found_start+1);  
-			tokencount++;
-			last_token_found_start =-1;
-			last_token_found_end =-1;
-			last_token_found_class=-1;
+			if(last_token_found_end ==-1) printerror();
+			//first = last_token_found_end+1;
+			//last = first;
+			yylen = last_token_found_end+1;
+			strncpy(yytext,s, yylen);
+			s =  s+ yylen;
+			//printf("remaining = %s",s);
+			//tokencount++;
+			//last_token_found_start =-1;
+			//last_token_found_end =-1;
+			//last_token_found_class=-1;
 		}
 	}
-	printf("tokens:\n");
-	for(i=0; i<tokencount;i++)
-		printf(" %s\n",token[i]);
+	return s;
+	//printf("tokens:\n");
 }
 int check(char* input,int first, int last,int class){
 	int i;
@@ -190,9 +198,14 @@ main(){
 		tcCount++;		                 
 	}
 	fclose(fp);
-	char input[20];
+	char *input =(char *)malloc(20*sizeof(char));
 	printf("enter input:");
 	scanf(" %s",input);
-	tokenizer(input);
-	//printf("%d",tokenizer(input));
+	while(input[0] != '\0')
+	{
+		input = lex(input);
+		printf(" %s\n",yytext);
+		//printf("remain %s\n",input);
+		
+	}
 }
