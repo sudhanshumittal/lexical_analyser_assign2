@@ -2,10 +2,10 @@
 #include<string.h>
 #include<stdlib.h>
 #define charstack_SIZE 50
-#define fp_size 10
+#define set_size 10
 #define MAX 10
 #define MAX_STATES 10
-#define CHAR_COUNT 10
+#define CHAR_COUNT 26
 void printerror(void );
 void add(int *a, int *b);
 struct node{
@@ -14,24 +14,27 @@ struct node{
 	int pos;
 	struct node * left;
 	struct node * right;
-	int fp[fp_size];
-	int lp[fp_size];
+	int fp[set_size];
+	int lp[set_size];
 };
 struct state{
 	int marked ;
 	char name;
-	int pos[10];
+	int pos[set_size];
 };
-int finalstate;
+int finalstate =-1 ;
 int initialstate = 0;
 int rejectstate = 1; 
-char Dtrans[MAX_STATES][10];
+
+char Dtrans[MAX_STATES][CHAR_COUNT];
 struct state Dstates[MAX_STATES];
+
 char charstack[charstack_SIZE];
 struct node *structstack[10];
 int structstacktop = -1;
 int charstacktop = -1;
-int followPos [MAX][fp_size];
+int followPos [MAX][set_size];
+
 void structstackpush(struct node *a){
 	if(structstacktop >= 9) printerror();
 	structstack[++structstacktop] = a;
@@ -64,8 +67,16 @@ void printerror(){
 	fprintf(stderr, "printerror!\n");
 	exit(0);
 }
-//void createtree();
+/*void createtree();*/
 char * infixcharstacktopostfix(char *regex){
+	/*
+		priority(high to low)
+		()
+		*, +, ?
+		.
+		|
+		
+	*/
 	char *out = (char *)malloc(sizeof(regex));
 	int count =-1;
 	int i=0;
@@ -123,15 +134,16 @@ char * infixcharstacktopostfix(char *regex){
 	return out;
 	
 }
-int pos = 1;
+
 struct node * make_tree(char *Po){
 	int i,j,k;
+	int pos = 1;
 	struct node *N;
 	for(i=0;Po[i]!='\0';i++){
        		N=(struct node *)malloc(sizeof(struct node));
        		N->data=Po[i]; N->left=NULL; N->right=NULL;
-       		memset(N->fp,0,fp_size);
-       		memset(N->lp,0,fp_size);
+       		memset(N->fp,0,set_size);
+       		memset(N->lp,0,set_size);
        		N->isnull = 0;
        		if(!(Po[i] == '*'|| Po[i] == '|'||Po[i] == '+'||Po[i] == '?'||Po[i] == '.')) N->pos = pos++;
        		else N->pos =0;
@@ -268,7 +280,7 @@ void print_lp(struct node * n){
 }
 void print_follow(){
 	int i=0;
-	for(i=0;i<10; i++){
+	for(i=0;i<set_size; i++){
 		printf("%d=>{",i);
 		int j=0;
 		for(;followPos[i][j] !=0; j++) printf("%d,",followPos[i][j]);
@@ -285,16 +297,30 @@ int unmarked(){
 }
 int present(int *temppos){
 	int i=-1;
-	char testarray[255];	
+	int testarray[255];	
 	for(i=0; i<MAX_STATES; i++){
-		memset(testarray,'\0',sizeof(testarray));
+		memset(testarray,0,sizeof(testarray));
 		int j=0;
+		//printf("pos ={");
 		for(j=0;Dstates[i].pos[j]!=0; j++)
-			testarray[Dstates[i].pos[j]]++;
-		for(j=0;j<temppos[j]!=0 && j<10; j++)
+			{
+			 testarray[Dstates[i].pos[j]]++;
+		//	 printf("%d,",Dstates[i].pos[j]);
+			}
+		//	printf("}\ntempos = {");
+		for(j=0;temppos[j]!=0; j++)
+		{
 			testarray[temppos[j]] --;
+			//printf("%d,",temppos[j]);
+		}
 		int found =1;
+		//printf("}\n");
+		
+		/*printf("%d\n",i);
 		for(j=0;j<255; j++)
+			printf("%d ",testarray[j]);
+		printf("\n");
+		*/for(j=0;j<255; j++)
 			if(testarray[j]!=0) found =0;   
 		if( found ==1) return i;	
 	}
@@ -302,8 +328,15 @@ int present(int *temppos){
 
 }
 void init(struct node *root){	
+/*reset Dstates */
 	memset(Dstates,'\0',sizeof(Dstates));
 	int j=0;
+	int i=0;
+/*reset Dtrans*/
+	for(i=1; i<MAX_STATES; i++)
+		for(j=1; j<CHAR_COUNT; j++)
+			Dtrans[i][j] = '\0';
+/* fill states names and alphabet set in Dtrans*/
 	for(j=1; j<CHAR_COUNT; j++)
 		Dtrans[0][j] = 'a'+j-1;
 	for(j=1; j<MAX_STATES; j++)
@@ -318,7 +351,7 @@ void init(struct node *root){
 	
 	
 }
-void construct_dfa(char * postfix , struct node * root){
+void construct_dfa(char * postfix ){
 	finalstate = initialstate;
 	int j=0;
 	char name ='B';
@@ -330,7 +363,7 @@ void construct_dfa(char * postfix , struct node * root){
 		Dstates[um].marked =1;
 		for(j =1; j<CHAR_COUNT; j++){
 			//printf("Dtrans[2][0] = %c\n",Dtrans[3][0]);
-			int temppos[10];
+			int temppos[set_size];
 			memset(temppos, 0, sizeof(temppos));
 			int i=0;
 			while(Dstates[um].pos[i]!=0 ){
@@ -345,12 +378,13 @@ void construct_dfa(char * postfix , struct node * root){
 					add(temppos,followPos[Dstates[um].pos[i]]);
 				i++;
 			} 
-			/*printf("temppos = { ");
+			/*printf("temppos1 = { ");
 			for(i=0;temppos[i]!=0; i++)
 				printf("%d,",temppos[i]);
 			printf("}\n");
-			*/int ispresent = present(temppos);
-			
+			*/
+			int ispresent = present(temppos);
+			//printf("ispresent= %d\n",ispresent);
 			if( temppos[0] != 0){
 				if(ispresent==-1){
 				Dstates[statecount++].marked = 0;
@@ -369,19 +403,9 @@ void construct_dfa(char * postfix , struct node * root){
 		um =unmarked();
 	}
 	if(name >'B') finalstate = name-'A';
-	printf("\nfinal state = %d\n",finalstate);
+	//printf("\nfinal state = %d\n",finalstate);
 }
-void print_dfatrans(){
-	int i,j;
-	for(i=0;i<MAX_STATES; i++){
-		
-		for(j=0;j<CHAR_COUNT; j++){
-			printf("\t%c",Dtrans[i][j]);
-		}	
-		printf("\n");
-		
-	}
-}
+
 int create_transition_table(char * regex){
 	/*
 	char regex[20];
@@ -403,6 +427,6 @@ int create_transition_table(char * regex){
 	print_follow();	
 	init(root);
 	//print_dfatrans();
-	construct_dfa(postfix, root);
-	print_dfatrans();
+	construct_dfa(postfix);
+	//print_dfatrans();
 }
