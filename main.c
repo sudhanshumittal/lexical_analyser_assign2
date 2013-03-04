@@ -5,7 +5,7 @@
 int tcCount;
 int check(char* input,int first, int last,int class);
 struct token_class{
-	char regex[40];
+	char regex[max_regex];
 	char class_id[10];
 	//struct state Dstates[MAX_STATES];
 	char Dtrans[MAX_STATES][CHAR_COUNT];
@@ -149,7 +149,7 @@ void recycle(){
 	int i;
 	for(i=0;i<MAX; i++)
 	{
-		memset(followPos[i],0,sizeof(followPos));
+		memset(followPos[i],0,sizeof(followPos[i]));
 	}
 }
 
@@ -181,8 +181,8 @@ void construct_token_classes(){
 
 main(){
 	tcCount = 0;
-	char regex[40];
-	char regex_in[20];                           
+	char regex[max_regex];
+	char regex_in[max_regex];                           
 	FILE *fp;
 	fp=fopen("rules.txt", "r");
 	//printf("enter regular expressions:");
@@ -190,8 +190,11 @@ main(){
 	while(!feof(fp))
 	{
 		fscanf(fp,"%s %s\n", tcArray[tcCount].class_id,regex_in);
+		printf("regex_in= %s\n",regex_in);
 		preprocess(regex_in, tcArray[tcCount].regex);
+		printf("regex= %s\n",tcArray[tcCount].regex);
 		recycle();
+		printf("regex= %s\n",tcArray[tcCount].regex);
 		create_transition_table(tcArray[tcCount].regex);/*resets global Dtates and Dtrans before usage function  init();*/
 		construct_token_classes();
 		print_dfatrans(tcCount);

@@ -1,11 +1,13 @@
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
-#define charstack_SIZE 50
-#define set_size 10
-#define MAX 10
+#define charstack_SIZE 10
+#define set_size 100 //equal to number of symbols in language
+#define MAX 100	//equal to number of symbols in language
 #define MAX_STATES 10
-#define CHAR_COUNT 26
+#define CHAR_COUNT 27
+#define structstacksize 20
+#define max_regex 120
 void printerror(void );
 void add(int *a, int *b);
 struct node{
@@ -30,13 +32,13 @@ char Dtrans[MAX_STATES][CHAR_COUNT];
 struct state Dstates[MAX_STATES];
 
 char charstack[charstack_SIZE];
-struct node *structstack[10];
+struct node *structstack[structstacksize];
 int structstacktop = -1;
 int charstacktop = -1;
 int followPos [MAX][set_size];
 
 void structstackpush(struct node *a){
-	if(structstacktop >= 9) printerror();
+	if(structstacktop >= structstacksize-1) printerror();
 	structstack[++structstacktop] = a;
 	 	
 }
@@ -77,7 +79,7 @@ char * infixcharstacktopostfix(char *regex){
 		|
 		
 	*/
-	char *out = (char *)malloc(sizeof(regex));
+	char *out = (char *)malloc(max_regex*sizeof(char));
 	int count =-1;
 	int i=0;
 	for(;i<strlen(regex); i++){
@@ -130,7 +132,9 @@ char * infixcharstacktopostfix(char *regex){
 	out[++count] = '$';
 	out[++count] = '.';
 	out[++count] = '\0';
-	printf("regex = %s \nout = %s\n",regex, out); 
+	
+	printf("%d %s",count, out);
+	
 	return out;
 	
 }
@@ -138,15 +142,21 @@ char * infixcharstacktopostfix(char *regex){
 struct node * make_tree(char *Po){
 	int i,j,k;
 	int pos = 1;
+	printf("Po =  %s",Po);       		
 	struct node *N;
-	for(i=0;Po[i]!='\0';i++){
+	for(i=0;i<strlen(Po);i++){
        		N=(struct node *)malloc(sizeof(struct node));
-       		N->data=Po[i]; N->left=NULL; N->right=NULL;
+       		N->data=Po[i];
+       		printf("%c ",N->data);
+       		N->left=NULL;
+       		N->right=NULL;
        		memset(N->fp,0,set_size);
        		memset(N->lp,0,set_size);
        		N->isnull = 0;
-       		if(!(Po[i] == '*'|| Po[i] == '|'||Po[i] == '+'||Po[i] == '?'||Po[i] == '.')) N->pos = pos++;
-       		else N->pos =0;
+       		if(!(Po[i] == '*'|| Po[i] == '|'||Po[i] == '+'||Po[i] == '?'||Po[i] == '.'))
+       			 N->pos = pos++;
+       		else
+       			 N->pos =0;
        		if(Po[i]=='.'||Po[i]=='|'){
           		N->right=structstack[structstackpop()];
           		N->left=structstack[structstackpop()];
@@ -156,7 +166,7 @@ struct node * make_tree(char *Po){
        			N->isnull = 1;
           		N->left=structstack[structstackpop()];
           		N->right=NULL;
-       		
+       			//printf("%c",N->left->data);
        		}
        		else if(Po[i] == '+' )
        		{
@@ -280,7 +290,7 @@ void print_lp(struct node * n){
 }
 void print_follow(){
 	int i=0;
-	for(i=0;i<set_size; i++){
+	for(i=0;i<MAX; i++){
 		printf("%d=>{",i);
 		int j=0;
 		for(;followPos[i][j] !=0; j++) printf("%d,",followPos[i][j]);
@@ -412,11 +422,16 @@ int create_transition_table(char * regex){
 	printf("enter regular expressions:");
 	scanf(" %s", regex);
 	*/
-	char * postfix = infixcharstacktopostfix(regex); 
+	printf("regex = %s \n",regex); 	
+	char * postfix = infixcharstacktopostfix(regex);
+	printf("regex = %s \npostfix = %s\n",regex, postfix); 	 
 	struct node * root  = make_tree(postfix);
+	//if(root == NULL) printerror();
+	printf("root data =%c\n",root->data);
+	print(root);
+	//printerror();
 	first_last_pos(root);
 //	last_pos(root);
-	print(root);
 	printf("\nfirst sets \n");
 	print_fp(root);
 	printf("\nlast sets \n");
