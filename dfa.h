@@ -4,10 +4,10 @@
 #define charstack_SIZE 10
 #define set_size 100 //equal to number of symbols in language
 #define MAX 100	//equal to number of symbols in language
-#define MAX_STATES 10
+#define MAX_STATES 10 //equal to max possible concatenaed symbols in any regular exp.
 #define CHAR_COUNT 27
 #define structstacksize 20
-#define max_regex 120
+#define max_regex 120	//max size of a regular experession string
 void printerror(void );
 void add(int *a, int *b);
 struct node{
@@ -133,7 +133,7 @@ char * infixcharstacktopostfix(char *regex){
 	out[++count] = '.';
 	out[++count] = '\0';
 	
-	printf("%d %s",count, out);
+	//printf("%d %s",count, out);
 	
 	return out;
 	
@@ -142,12 +142,11 @@ char * infixcharstacktopostfix(char *regex){
 struct node * make_tree(char *Po){
 	int i,j,k;
 	int pos = 1;
-	printf("Po =  %s",Po);       		
+//	printf("Po =  %s",Po);       		
 	struct node *N;
 	for(i=0;i<strlen(Po);i++){
        		N=(struct node *)malloc(sizeof(struct node));
        		N->data=Po[i];
-       		printf("%c ",N->data);
        		N->left=NULL;
        		N->right=NULL;
        		memset(N->fp,0,set_size);
@@ -422,24 +421,24 @@ int create_transition_table(char * regex){
 	printf("enter regular expressions:");
 	scanf(" %s", regex);
 	*/
-	printf("regex = %s \n",regex); 	
 	char * postfix = infixcharstacktopostfix(regex);
+	
 	printf("regex = %s \npostfix = %s\n",regex, postfix); 	 
+	
 	struct node * root  = make_tree(postfix);
-	//if(root == NULL) printerror();
-	printf("root data =%c\n",root->data);
-	print(root);
-	//printerror();
+	if(root == NULL) printerror();
+	//print(root);
 	first_last_pos(root);
-//	last_pos(root);
-	printf("\nfirst sets \n");
+	/*printf("\nfirst sets \n");
 	print_fp(root);
 	printf("\nlast sets \n");
 	print_lp(root);
+	*/
 	cal_follow_sets(root);
-	printf("\nfollow sets \n");
+	/*printf("\nfollow sets \n");
 	
 	print_follow();	
+	*/
 	init(root);
 	//print_dfatrans();
 	construct_dfa(postfix);

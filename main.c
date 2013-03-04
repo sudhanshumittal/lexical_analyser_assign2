@@ -32,6 +32,7 @@ void print_dfatrans(int z){
 int yylen;
 char yytext[20];
 char * lex(char* s){
+	while(s[0]== ' ') s++;
 	int first=0, last =0;
 	memset(yytext, '\0',sizeof(yytext));
 	yylen =0;
@@ -73,6 +74,7 @@ char * lex(char* s){
 			//last_token_found_class=-1;
 		}
 	}
+	printf("< %s,", tcArray[last_token_found_class].class_id);
 	return s;
 	//printf("tokens:\n");
 }
@@ -190,24 +192,35 @@ main(){
 	while(!feof(fp))
 	{
 		fscanf(fp,"%s %s\n", tcArray[tcCount].class_id,regex_in);
-		printf("regex_in= %s\n",regex_in);
+		//printf("regex_in= %s\n",regex_in);
 		preprocess(regex_in, tcArray[tcCount].regex);
-		printf("regex= %s\n",tcArray[tcCount].regex);
+		//printf("regex= %s\n",tcArray[tcCount].regex);
 		recycle();
-		printf("regex= %s\n",tcArray[tcCount].regex);
+		//printf("regex= %s\n",tcArray[tcCount].regex);
 		create_transition_table(tcArray[tcCount].regex);/*resets global Dtates and Dtrans before usage function  init();*/
 		construct_token_classes();
 		print_dfatrans(tcCount);
 		tcCount++;		                 
 	}
 	fclose(fp);
-	char *input =(char *)malloc(20*sizeof(char));
-	printf("enter input:");
-	scanf(" %s",input);
+	fp = fopen("input.c","r");
+	if(!fp)
+		printerror();
+	char *input =(char *)malloc(100*sizeof(char));
+	while(!feof(fp))
+	{
+		char buf[20];
+		fscanf(fp,"%s",buf);
+		if(feof(fp)) break;
+		strcpy(input+strlen(input),buf);
+		strcpy(input+strlen(input)," ");
+		
+	}
+	//printf("input = %s", input);
 	while(input[0] != '\0')
 	{
 		input = lex(input);
-		printf(" %s\n",yytext);
+		printf(" %s>\n",yytext);
 		//printf("remain %s\n",input);
 		
 	}
