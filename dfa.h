@@ -2,14 +2,16 @@
 #include<string.h>
 #include<stdlib.h>
 #define charstack_SIZE 10
+#define first_char '!'
 #define set_size 100 //equal to number of symbols in language
 #define MAX 100	//equal to number of symbols in language
 #define MAX_STATES 10 //equal to max possible concatenaed symbols in any regular exp.
-#define CHAR_COUNT 27
+#define CHAR_COUNT  126- 33+1
 #define structstacksize 20
 #define max_regex 120	//max size of a regular experession string
 void printerror(void );
 void add(int *a, int *b);
+int isreserved(char a);
 struct node{
 	char data;
 	int isnull;
@@ -74,7 +76,7 @@ char * infixcharstacktopostfix(char *regex){
 	/*
 		priority(high to low)
 		()
-		*, +, ?
+		*		
 		.
 		|
 		
@@ -106,11 +108,15 @@ char * infixcharstacktopostfix(char *regex){
 					charstackpush('.');
 				break;	
 			case '*':		 
-				while( !charstackempty() && ('*' ==charstack[charstacktop] || '+' ==charstack[charstacktop] || '?' ==charstack[charstacktop]) )
+				while( !charstackempty() && ('*' ==charstack[charstacktop] /*|| '+' ==charstack[charstacktop] || '?' ==charstack[charstacktop]*/) )
 					out[++count] = charstackpop();
 				charstackpush('*');
 				break;
-			case '+':		 
+			case '\\':
+				out[++count]  = regex[i++];
+				out[++count]  = regex[i];
+				break;
+			/*case '+':		 
 				while( !charstackempty() && ('*' ==charstack[charstacktop] || '+' ==charstack[charstacktop]|| '?' ==charstack[charstacktop]))
 					out[++count] = charstackpop();
 				charstackpush('+');
@@ -119,7 +125,7 @@ char * infixcharstacktopostfix(char *regex){
 				while( !charstackempty() && ('*' ==charstack[charstacktop] || '+' ==charstack[charstacktop]|| '?' ==charstack[charstacktop]))
 					out[++count] = charstackpop();
 				charstackpush('?');
-				break;
+				break;*/
 			default:
 				out[++count]  = regex[i];
 				 
@@ -145,15 +151,25 @@ struct node * make_tree(char *Po){
 //	printf("Po =  %s",Po);       		
 	struct node *N;
 	for(i=0;i<strlen(Po);i++){
+       		//printf("%d ",pos);
        		N=(struct node *)malloc(sizeof(struct node));
-       		N->data=Po[i];
+       		if(Po[i] != '\\') N->data=Po[i];
+       		else{
+       		 N->data = Po[i+1]; 
+       		 i++;
+       		 N->pos = pos++;
+       		 structstackpush(N);
+       		 continue;
+       		}
+       		
        		N->left=NULL;
        		N->right=NULL;
        		memset(N->fp,0,set_size);
        		memset(N->lp,0,set_size);
        		N->isnull = 0;
-       		if(!(Po[i] == '*'|| Po[i] == '|'||Po[i] == '+'||Po[i] == '?'||Po[i] == '.'))
+       		if(!isreserved(Po[i])){
        			 N->pos = pos++;
+       		}
        		else
        			 N->pos =0;
        		if(Po[i]=='.'||Po[i]=='|'){
@@ -161,18 +177,18 @@ struct node * make_tree(char *Po){
           		N->left=structstack[structstackpop()];
 	       		//printf("%c",N->left->data);
        		}
-       		else if(Po[i]=='*' || Po[i] == '?'){
+       		else if(Po[i]=='*' /* || Po[i] == '?'*/){
        			N->isnull = 1;
           		N->left=structstack[structstackpop()];
           		N->right=NULL;
        			//printf("%c",N->left->data);
        		}
-       		else if(Po[i] == '+' )
+       		/*else if(Po[i] == '+' )
        		{
        			N->left=structstack[structstackpop()];
           		N->right=NULL;
        		
-       		}
+       		}*/
        		structstackpush(N);
    	}
    	return structstack[structstackpop()];
@@ -181,7 +197,7 @@ struct node * make_tree(char *Po){
 void print(struct node * n){
 	if(n == NULL) return ;
 	print(n->left);
-	printf(" %c",n->data);
+	printf("val= %c pos = %d\n",n->data,n->pos);
 	print(n->right);
 	
 		
@@ -206,7 +222,7 @@ void first_last_pos(struct node * curr){
 		
 		//return ;
 	}
-	if(curr->data == '.' || curr->data == '+'){
+	if(curr->data == '.' /*|| curr->data == '+'*/){
 		if(curr->left->isnull) {
 			add(curr->fp,curr->left->fp);
 			add(curr->fp,curr->right->fp);		
@@ -222,7 +238,7 @@ void first_last_pos(struct node * curr){
 			add(curr->lp,curr->right->lp);
 		//}
 	}
-	if(curr->data == '*' || curr->data == '?'){
+	if(curr->data == '*' ){
 		add(curr->fp,curr->left->fp);
 		add(curr->lp,curr->left->lp);
 	}
@@ -342,12 +358,13 @@ void init(struct node *root){
 	int j=0;
 	int i=0;
 /*reset Dtrans*/
+	Dtrans[0][0] = ' '; 
 	for(i=1; i<MAX_STATES; i++)
 		for(j=1; j<CHAR_COUNT; j++)
 			Dtrans[i][j] = '\0';
 /* fill states names and alphabet set in Dtrans*/
 	for(j=1; j<CHAR_COUNT; j++)
-		Dtrans[0][j] = 'a'+j-1;
+		Dtrans[0][j] = first_char+j-1;
 	for(j=1; j<MAX_STATES; j++)
 		Dtrans[j][0] =('A'+j-1);
 	char name ='A'	 ;
@@ -359,6 +376,10 @@ void init(struct node *root){
 	Dstates[1].marked = 0;
 	
 	
+}
+int isreserved(char a){
+	if(a=='*'|| a=='.'|| a=='|' ||  a=='(' ||  a==')') return 1;
+	else return 0;
 }
 void construct_dfa(char * postfix ){
 	finalstate = initialstate;
@@ -379,11 +400,14 @@ void construct_dfa(char * postfix ){
 				int k=0;
 				int z=0;
 				while(k != Dstates[um].pos[i]){
-					if(isalnum(postfix[z])) k++;
-					z++;
+					if(postfix[z] == '\\') 
+					{	k++;z++;
+					}
+					else if(!isreserved(postfix[z])) k++;
+						z++;
 				}
 				//printf("at position %d, char is %c\n",Dstates[um].pos[i], postfix[z-1]);
-				if(postfix[z-1]== 'a'+ j-1)
+				if(postfix[z-1]== first_char+ j-1)
 					add(temppos,followPos[Dstates[um].pos[i]]);
 				i++;
 			} 
@@ -428,6 +452,7 @@ int create_transition_table(char * regex){
 	struct node * root  = make_tree(postfix);
 	if(root == NULL) printerror();
 	//print(root);
+	//printerror();
 	first_last_pos(root);
 	/*printf("\nfirst sets \n");
 	print_fp(root);

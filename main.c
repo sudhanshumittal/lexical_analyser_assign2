@@ -1,12 +1,13 @@
 #include<stdio.h>
 #include"dfa.h"
-#define max_tokens 10
-#define MAX_TOKEN_CLASS 10
+#define MAX_TOKEN_CLASS 50 //no of regeular expressions
+
 int tcCount;
 int check(char* input,int first, int last,int class);
+int first =0;
 struct token_class{
 	char regex[max_regex];
-	char class_id[10];
+	char class_id[20];
 	//struct state Dstates[MAX_STATES];
 	char Dtrans[MAX_STATES][CHAR_COUNT];
 	int initialstate;
@@ -19,39 +20,42 @@ void print_dfatrans(int z){
 	for(i=0;i<MAX_STATES; i++){
 		
 		for(j=0;j<CHAR_COUNT; j++){
-			printf("\t%c",tcArray[z].Dtrans[i][j]);
+			printf(" %c",tcArray[z].Dtrans[i][j]);
 		}	
 		printf("\n");
 		
 	}
-	printf("initial State :%d\n", tcArray[z].initialstate);
-	printf("reject State :%d\n", tcArray[z].rejectstate);
-	printf("final State :%d\n", tcArray[z].finalstate);
+	printf("initial State :%c\n", tcArray[z].initialstate+'A');
+	printf("reject State :%c\n", tcArray[z].rejectstate+'A');
+	printf("final State :%c\n", tcArray[z].finalstate+'A');
 	
 }
 int yylen;
 char yytext[20];
-char * lex(char* s){
-	while(s[0]== ' ') s++;
-	int first=0, last =0;
+char* yyclass;
+void lex(char* s){
+	
+	s = s + first;
+	while(s[0]== ' '){
+	 s++;
+	 first++;
+	}
+	int  last = 0;
+	//printf("first = %d,last = %d, s = {%s}\n",first,last,  s);
+	
 	memset(yytext, '\0',sizeof(yytext));
+	yyclass= NULL;
 	yylen =0;
-	//char token[max_tokens][10];
-	int i;
-	/*
-	  for(i=0; i<max_tokens;i++)
-		memset(token[i], '\0',sizeof(token[i]));
-	*/
-	//int tokencount = 0;
-	int len = strlen(s);
+	
+	//int len = strlen(s);
 	int last_token_found_start =-1;
 	int last_token_found_end =-1;
 	int last_token_found_class=-1;
-	while(last < len){
+	while(s[last] != '\0' && s[last] != ' '){
 		int j;
 		for(j=0;j<tcCount; j++){
-			//printf("first = %d\tlast = %d\tcheck = %d\n",first, last, check(s, first,last,j));
-			if(check(s, first,last,j )){
+			//printf("first = %d\tlast = %d\tcheck = %d\n",0, last, check(s, 0,last,j));
+			if(check(s, 0,last,j )){
 			
 			 //last_token_found_start = first;
 			 last_token_found_end = last;
@@ -60,22 +64,15 @@ char * lex(char* s){
 			}
 		}
 		last++;
-		if(last == len) {
+		if(s[last] == '\0' || s[last] == ' ') {
 			if(last_token_found_end ==-1) printerror();
-			//first = last_token_found_end+1;
 			//last = first;
 			yylen = last_token_found_end+1;
+			first = first+last_token_found_end+1;			
 			strncpy(yytext,s, yylen);
-			s =  s+ yylen;
-			//printf("remaining = %s",s);
-			//tokencount++;
-			//last_token_found_start =-1;
-			//last_token_found_end =-1;
-			//last_token_found_class=-1;
 		}
 	}
-	printf("< %s,", tcArray[last_token_found_class].class_id);
-	return s;
+	yyclass =  tcArray[last_token_found_class].class_id;
 	//printf("tokens:\n");
 }
 int check(char* input,int first, int last,int class){
@@ -83,8 +80,8 @@ int check(char* input,int first, int last,int class){
 	int state = tcArray[class].initialstate;
 	for( i =first; i<=last; i++)
 	{
-		//printf("state is %d\n",state+1);
-		state = tcArray[class].Dtrans[state+1][input[i]-'a'+1]-'A';
+		//printf("class is %d state is %d\n",class, state+1);
+		state = tcArray[class].Dtrans[state+1][input[i]-first_char+1]-'A';
 		//state = newstate;
 	}
 	return state == tcArray[class].finalstate;
@@ -98,18 +95,25 @@ void preprocess( char* input, char* regex)
 	while(input[c] != '\0')
 	{
 		//printf("%c\n",input[c]);
-		if(isalnum(input[c]))//(input[c]>='a'&& input[c]<='z') || (input[c]>='A' && input[c]<='Z'))
+		if(!isreserved(input[c]))//(input[c]>='a'&& input[c]<='z') || (input[c]>='A' && input[c]<='Z'))
 		{
 			
 			if(isalpha)
 			{	
 				regex[pt] = '.';
 				pt++;
+				
+			}
+			if(input[c] == '\\' ){
+					regex[pt] = input[c];
+					pt++;
+					c++;
 			}
 			isalpha = 1;
 			regex[pt] = input[c];
 			pt++;
-		}else if(input[c]=='|')
+		}
+		else if(input[c]=='|')
 		{
 			isalpha = 0;
 			regex[pt] = input[c];
@@ -180,21 +184,27 @@ void construct_token_classes(){
 	tcArray[tcCount].rejectstate = rejectstate;	
 	
 }
-
+int symbol_present(char *symtable, char * sym){
+	if (strstr(symtable,sym)) return 0;
+	else return 1;
+}
 main(){
 	tcCount = 0;
-	char regex[max_regex];
+	//char regex[max_regex];
 	char regex_in[max_regex];                           
 	FILE *fp;
 	fp=fopen("rules.txt", "r");
-	//printf("enter regular expressions:");
-	//scanf(" %s", regex_in);                    
+	if(!fp){
+		printf("file not found");
+		printerror();
+	
+	}
 	while(!feof(fp))
 	{
 		fscanf(fp,"%s %s\n", tcArray[tcCount].class_id,regex_in);
 		//printf("regex_in= %s\n",regex_in);
 		preprocess(regex_in, tcArray[tcCount].regex);
-		//printf("regex= %s\n",tcArray[tcCount].regex);
+		printf("regex= %s\n",tcArray[tcCount].regex);
 		recycle();
 		//printf("regex= %s\n",tcArray[tcCount].regex);
 		create_transition_table(tcArray[tcCount].regex);/*resets global Dtates and Dtrans before usage function  init();*/
@@ -204,8 +214,11 @@ main(){
 	}
 	fclose(fp);
 	fp = fopen("input.c","r");
-	if(!fp)
+	if(!fp){
+		printf("file not found");
 		printerror();
+	
+	}
 	char *input =(char *)malloc(100*sizeof(char));
 	while(!feof(fp))
 	{
@@ -216,12 +229,26 @@ main(){
 		strcpy(input+strlen(input)," ");
 		
 	}
-	//printf("input = %s", input);
-	while(input[0] != '\0')
-	{
-		input = lex(input);
-		printf(" %s>\n",yytext);
-		//printf("remain %s\n",input);
-		
+	//printf("input = %s\n", input);
+	fclose(fp);
+	fopen("output.txt","w");
+	if(!fp){
+		printf("file not found");
+		printerror();
+	
+	}//printf("check = %d ",check("brbit",0,0,0));
+	int j=0;
+	int i=0;
+	char output[100];
+	memset(output, '\0',strlen(output));
+	while(input[first+1] != '\0'){
+		lex(input);
+		//if(!strcmp(yyclass,"ID")) 
+		//	if(!symbol_present(output,yytext))
+		//		printf(output+strlen(output), "%d\t%s\t%s\n",i++,yyclass, yytext);
+		//else
+		 printf("%d\t%s\t%s\n",j++,yyclass, yytext);
 	}
+	fprintf(fp," %s",output);
+	fclose(fp);
 }

@@ -1,8 +1,0 @@
-if|else
-	i.f|e.l.s.e
-a*b
-	a*.b
-(a|b)c
-	(a|b).c
-(a|b)*c
-	(a|b)*.c
